@@ -2,7 +2,7 @@
 
 ![image](https://user-images.githubusercontent.com/66974415/153200614-bb9b7673-cda9-494b-b73a-0ba1e8400fb7.png)
 
-Idk, I needed a really simple lightbox and all the other "simple" lightboxes included way too many features and UI decisions, so I made one myself. Includes keyboard navigation and support for multiple images.
+Idk, I needed a really simple lightbox and all the other "simple" lightboxes included way too many features and UI decisions, so I made one myself. Includes keyboard navigation and support for multiple images. [Here's the demo](http://git.nuel.cloud/lightbox/demo.html)
 
 License: WTFPL
 
