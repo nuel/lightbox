@@ -6,14 +6,12 @@ function h (el, className, content) {
 }
 
 document.querySelectorAll('.lightbox').forEach((lightbox) => {
-  // Create the lightbox
   const lightboxContent = h('div', 'lightbox-content')
-  const lightboxClose = h('a', 'lightbox-close', '&times;')
-  const lightboxPrev = h('a', 'lightbox-prev', '&larr;')
-  const lightboxNext = h('a', 'lightbox-next', '&rarr;')
-  const lightboxImage = h('img', 'lightbox-image')
+  const lightboxClose = h('a', 'lightbox-close')
+  const lightboxPrev = h('a', 'lightbox-prev')
+  const lightboxNext = h('a', 'lightbox-next')
+  const lightboxCursor = h('div', 'lightbox-cursor')
   const lightboxImageContainer = h('div', 'lightbox-image-container')
-  lightboxImageContainer.appendChild(lightboxImage)
   lightboxContent.appendChild(lightboxImageContainer)
   lightboxContent.appendChild(lightboxClose)
   document.body.appendChild(lightboxContent)
@@ -21,7 +19,11 @@ document.querySelectorAll('.lightbox').forEach((lightbox) => {
   const state = {
     target: null,
     images: [],
-    index: 0
+    index: 0,
+    offset: 0,
+    lastOffset: 0,
+    dragging: false,
+    originX: 0
   }
 
   lightbox.addEventListener('click', (event) => {
@@ -42,15 +44,40 @@ document.querySelectorAll('.lightbox').forEach((lightbox) => {
 
     // If there's more than one image, show the next/prev buttons
     if (state.images.length > 1) {
-      lightboxImageContainer.appendChild(lightboxPrev)
-      lightboxImageContainer.appendChild(lightboxNext)
+      lightboxContent.appendChild(lightboxPrev)
+      lightboxContent.appendChild(lightboxNext)
+      lightboxContent.appendChild(lightboxCursor)
+
+      // Also set the hover listeners
+      lightboxPrev.addEventListener('mousemove', handleHover)
+      lightboxNext.addEventListener('mousemove', handleHover)
+      lightboxClose.addEventListener('mousemove', handleCloseHover)
     }
+
+    // Add all images in the state to the image container
+    state.images.forEach(image => {
+      const imageElement = h('div', 'lightbox-image')
+      const imageContent = h('img')
+      imageContent.src = image.src
+      imageContent.addEventListener('dragstart', (e) => e.preventDefault())
+      imageElement.appendChild(imageContent)
+      lightboxImageContainer.appendChild(imageElement)
+
+      // Sliders:
+      imageElement.addEventListener('pointerdown', handleDragPointerDown)
+      imageElement.addEventListener('pointerup', endDragAnimationLoop)
+      imageElement.addEventListener('pointerleave', endDragAnimationLoop)
+      imageElement.addEventListener('pointermove', handleDragMove)
+    })
 
     // Get the index of the clicked image
     state.index = state.images.indexOf(state.target)
 
+    // Use the index to offset the image row
+    snapOffset()
+
+    // And finally, show the lightbox
     lightboxContent.style.display = 'flex'
-    lightboxImage.src = state.target.getAttribute('src')
   })
 
   // Close when clicking the background
@@ -72,7 +99,7 @@ document.querySelectorAll('.lightbox').forEach((lightbox) => {
     if (state.index < 0) {
       state.index = state.images.length - 1
     }
-    lightboxImage.src = state.images[state.index].getAttribute('src')
+    snapOffset()
   }
 
   function lightboxShowNext() {
@@ -80,7 +107,57 @@ document.querySelectorAll('.lightbox').forEach((lightbox) => {
     if (state.index >= state.images.length) {
       state.index = 0
     }
-    lightboxImage.src = state.images[state.index].getAttribute('src')
+    snapOffset()
+  }
+
+  function snapOffset() {
+    state.offset = state.index * window.innerWidth
+    renderOffset()
+  }
+
+  function renderOffset() {
+    lightboxImageContainer.style.transform = `translateX(${ -1 * state.offset }px)`       
+  }
+
+  function handleDragPointerDown(event) {
+    state.dragging = true
+    state.originX = event.clientX
+    state.lastOffset = state.offset
+    dragAnimationLoop()
+  }
+
+  function handleDragMove(event) {
+    if (state.dragging) {
+      state.offset = state.lastOffset - (event.clientX - state.originX)
+    }
+  }
+
+  function dragAnimationLoop() {
+    renderOffset()
+    if (state.dragging) window.requestAnimationFrame(dragAnimationLoop)
+  }
+
+  function endDragAnimationLoop() {
+    state.dragging = false
+    state.index = Math.round(state.offset / window.innerWidth)
+    if (state.index < 0) state.index = 0
+    if (state.index >= state.images.length) state.index = state.images.length - 1
+    snapOffset()
+  }
+
+  function handleHover(event) {
+    lightboxCursor.style.display = 'block'
+
+    window.requestAnimationFrame(() => {
+      lightboxCursor.className = 'lightbox-cursor'
+      lightboxCursor.classList.add(event.target.className.slice(-4))
+      lightboxCursor.style.top = event.y + 'px'
+      lightboxCursor.style.left = event.x + 'px'
+    })
+  }
+
+  function handleCloseHover(event) {
+    lightboxCursor.style.display = 'none'
   }
 
   lightboxPrev.addEventListener('click', lightboxShowPrev)
@@ -98,4 +175,12 @@ document.querySelectorAll('.lightbox').forEach((lightbox) => {
       }
     }
   })
+
+  window.addEventListener('resize', snapOffset)
 })
+
+window.oncontextmenu = function (event) {
+  event.preventDefault()
+  event.stopPropagation()
+  return false
+}
