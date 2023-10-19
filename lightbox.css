@@ -23,8 +23,8 @@
 }
 
 .lightbox-content .lightbox-image-container img {
-  width: 100%;
-  max-width: 60rem;
+  max-width: 100vmin;
+  max-height: 100vmin;
 }
 
 .lightbox-close {
